@@ -12,7 +12,7 @@ struct Conditions {
 
 #[derive(Debug, Clone, PartialEq)]
 enum InstructionType {
-    EchoString,
+    Echo,
     Error(String, u64),
     // First vec is for multiple if elseif conditions, the second is for the else case
     Conditions(Vec<Conditions>, Option<Vec<Instruction>>),
@@ -141,7 +141,7 @@ impl Instructions {
     }
 
     pub fn add_instruction(&mut self, instruction: &mut Instruction) {
-        if instruction.op_type == InstructionType::EchoString
+        if instruction.op_type == InstructionType::Echo
             && instruction.value == InstructionValue::Undefined
         {
             // Do nothing
@@ -150,7 +150,7 @@ impl Instructions {
         }
 
         // Reset the instruction
-        instruction.op_type = InstructionType::EchoString;
+        instruction.op_type = InstructionType::Echo;
         instruction.value = InstructionValue::Undefined;
     }
 
@@ -183,6 +183,13 @@ fn compute_liquid_instructions(
     liquid_str: &str,
     echo_mode: &bool,
 ) {
+    // Lines are important in liquid
+    let lines = liquid_str.lines();
+    for line in lines {
+        let line = line.trim();
+        println!("Line: {}", line);
+    }
+
     todo!("Compute liquid instructions");
 }
 
@@ -207,7 +214,7 @@ fn main() {
 
     let mut instructions = Instructions::new();
     let mut next_instruction = Instruction {
-        op_type: InstructionType::EchoString,
+        op_type: InstructionType::Echo,
         value: InstructionValue::Undefined,
     };
 
@@ -237,7 +244,7 @@ fn main() {
                 continue;
             }
 
-            next_instruction.op_type = InstructionType::EchoString;
+            next_instruction.op_type = InstructionType::Echo;
             instructions.liquid_error_handler(next_instruction.add_char(letter), &line_number);
             continue;
         } else if is_liquid_mode {
