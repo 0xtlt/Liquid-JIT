@@ -306,28 +306,36 @@ fn compute_liquid_instructions(
     echo_mode: &bool,
 ) {
     // Lines are important in liquid
+    println!("input Liquid: {}", liquid_str);
+    let mut liquid_instructions: Vec<Vec<LiquidDataType>> = vec![vec![]];
+
     let lines = liquid_str.lines();
     for line in lines {
         let line = line.trim();
 
         // First pass to split by spaces (but not in quotes)
         let line_parts = split_by_spaces(line);
-        println!("Line: {:?}", line_parts);
-        println!(
-            "Line: {:?}",
-            apply_variable_detection(&keys_detection(
-                &keys_detection(
-                    &keys_detection(&line_parts, &FILTER_SYMBOLE, LiquidDataType::Filter),
-                    &COMA_SYMBOLE,
-                    LiquidDataType::Coma
-                ),
-                &PERIOD_SYMBOLE,
-                LiquidDataType::Period
-            ))
-        );
+
+        let result = apply_variable_detection(&keys_detection(
+            &keys_detection(
+                &keys_detection(&line_parts, &FILTER_SYMBOLE, LiquidDataType::Filter),
+                &COMA_SYMBOLE,
+                LiquidDataType::Coma,
+            ),
+            &PERIOD_SYMBOLE,
+            LiquidDataType::Period,
+        ));
+
+        if result.first() != Some(&LiquidDataType::Filter) {
+            liquid_instructions.push(vec![]);
+        }
+
+        liquid_instructions.last_mut().unwrap().extend(result);
     }
 
-    todo!("Compute liquid instructions");
+    println!("liquid_instructions: {:?}", liquid_instructions);
+
+    // todo!("Compute liquid instructions");
 }
 
 fn main() {
@@ -399,6 +407,7 @@ fn main() {
                         &is_liquid_echo_mode,
                     );
                     last_liquid_string = String::new();
+                    is_liquid_mode = false;
                     is_liquid_echo_mode = false;
                     skip_count = 1;
                     // instructions.add_instruction(&mut next_instruction);
