@@ -173,15 +173,57 @@ impl Instructions {
 
 // Keywords
 const FILTER_SYMBOLE: char = '|';
+const COMA_SYMBOLE: char = ',';
+const PERIOD_SYMBOLE: char = ':';
 const QUOTE_SYMBOLE: char = '\'';
 const DB_QUOTE_SYMBOLE: char = '"';
 const ASSIGN_SYMBOLE: char = '=';
 const ASSIGN_KEYWORD: &str = "assign";
 
+const RESERVED_KEYWORDS: [&str; 7] = ["replace", "assign", "if", "else", "endif", "plus", "minus"];
+
 #[derive(Debug, Clone, PartialEq)]
 enum LiquidDataType {
     Liquid(String),
+    Variable(String),
     Quote(String),
+    Filter,
+    Coma,
+    Period,
+}
+
+fn keys_detection(
+    datas: &[LiquidDataType],
+    symbole: &char,
+    kind: LiquidDataType,
+) -> Vec<LiquidDataType> {
+    let mut datas_with_filter: Vec<LiquidDataType> = Vec::new();
+    for data in datas {
+        match data {
+            LiquidDataType::Liquid(content) => {
+                if content.contains(*symbole) {
+                    let parts = content.split(*symbole).collect::<Vec<&str>>();
+
+                    for (index, part) in parts.iter().enumerate() {
+                        if !part.is_empty() {
+                            datas_with_filter.push(LiquidDataType::Liquid(part.to_string()));
+                        }
+
+                        if index < parts.len() - 1 {
+                            datas_with_filter.push(kind.clone());
+                        }
+                    }
+                } else {
+                    datas_with_filter.push(LiquidDataType::Liquid(content.to_owned()));
+                }
+            }
+            _ => {
+                datas_with_filter.push(data.clone());
+            }
+        }
+    }
+
+    datas_with_filter
 }
 
 fn split_by_spaces(str: &str) -> Vec<LiquidDataType> {
@@ -191,7 +233,10 @@ fn split_by_spaces(str: &str) -> Vec<LiquidDataType> {
     let mut quote_type = ' ';
     let mut in_escaped = false;
 
-    for c in str.chars() {
+    for (index, c) in str.chars().enumerate() {
+        // let is_first = index == 0;
+        // let is_last = index == str.len() - 1;
+
         if in_escaped {
             current.push(c);
             in_escaped = false;
@@ -235,6 +280,26 @@ fn split_by_spaces(str: &str) -> Vec<LiquidDataType> {
     result
 }
 
+fn apply_variable_detection(datas: &[LiquidDataType]) -> Vec<LiquidDataType> {
+    let mut datas_with_filter: Vec<LiquidDataType> = Vec::new();
+    for data in datas {
+        match data {
+            LiquidDataType::Liquid(content) => {
+                if RESERVED_KEYWORDS.contains(&content.as_str()) {
+                    datas_with_filter.push(LiquidDataType::Liquid(content.to_owned()));
+                } else {
+                    datas_with_filter.push(LiquidDataType::Variable(content.to_owned()));
+                }
+            }
+            _ => {
+                datas_with_filter.push(data.clone());
+            }
+        }
+    }
+
+    datas_with_filter
+}
+
 fn compute_liquid_instructions(
     instructions: &mut Instructions,
     liquid_str: &str,
@@ -248,6 +313,18 @@ fn compute_liquid_instructions(
         // First pass to split by spaces (but not in quotes)
         let line_parts = split_by_spaces(line);
         println!("Line: {:?}", line_parts);
+        println!(
+            "Line: {:?}",
+            apply_variable_detection(&keys_detection(
+                &keys_detection(
+                    &keys_detection(&line_parts, &FILTER_SYMBOLE, LiquidDataType::Filter),
+                    &COMA_SYMBOLE,
+                    LiquidDataType::Coma
+                ),
+                &PERIOD_SYMBOLE,
+                LiquidDataType::Period
+            ))
+        );
     }
 
     todo!("Compute liquid instructions");
