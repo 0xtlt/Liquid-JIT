@@ -1,4 +1,5 @@
 mod jit;
+pub mod runtime;
 
 use jit::{
     data_manipulation::DataManipulationFunction,
@@ -266,6 +267,15 @@ fn main() {
             }
         }
     }
+    println!("Instructions:");
     println!("{:?}", instructions);
+
+    println!();
+    println!();
+    println!();
+
+    println!("RUN Result:");
+    println!("{}", runtime::run(&instructions, &variables));
+
     // println!("next_instruction:{:?}", next_instruction);
 }
