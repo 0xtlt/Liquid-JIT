@@ -419,8 +419,24 @@ fn compute_liquid_instructions(
 
         println!("first_instruction: {:?}", first_instruction);
 
-        // TODO: modify the assign system because assign is not the same as render ou anything else
-        let mut instruction: Instruction = Instruction {
+        let function = {
+            if echo_mode {
+                DataManipulationFunction::NotDefined
+            } else {
+                match first_instruction.get(0) {
+                    Some(LiquidDataType::Liquid(content)) => {
+                        if content == "assign" {
+                            DataManipulationFunction::Assign
+                        } else {
+                            DataManipulationFunction::NotDefined
+                        }
+                    }
+                    _ => DataManipulationFunction::NotDefined,
+                }
+            }
+        };
+
+        let instruction: Instruction = Instruction {
             op_type: InstructionType::DataManipulation(DataManipulation {
                 data: {
                     match data {
@@ -429,22 +445,22 @@ fn compute_liquid_instructions(
                         _ => panic!("Not supported case"),
                     }
                 },
-                function: {
-                    if echo_mode {
-                        DataManipulationFunction::NotDefined
+                args: {
+                    if function == DataManipulationFunction::Assign {
+                        vec![match first_instruction.get(3).expect("No args found") {
+                            LiquidDataType::Variable(name) => {
+                                DataManipulationArg::Variable(name.to_owned())
+                            }
+                            LiquidDataType::Quote(content) => {
+                                DataManipulationArg::String(content.to_owned())
+                            }
+                            _ => panic!("Not supported case"),
+                        }]
                     } else {
-                        DataManipulationFunction::Assign
+                        vec![]
                     }
                 },
-                args: vec![match first_instruction.get(3).expect("No args found") {
-                    LiquidDataType::Variable(name) => {
-                        DataManipulationArg::Variable(name.to_owned())
-                    }
-                    LiquidDataType::Quote(content) => {
-                        DataManipulationArg::String(content.to_owned())
-                    }
-                    _ => panic!("Not supported case"),
-                }],
+                function,
                 arg_map: HashMap::new(),
                 mode: {
                     if echo_mode {
