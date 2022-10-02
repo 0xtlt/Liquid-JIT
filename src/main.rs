@@ -332,7 +332,7 @@ fn generate_data_manipulations(filter_groups: &Vec<Vec<LiquidDataType>>) -> Vec<
         }
 
         let function = get_first_liquid(filter_group).expect("No liquid in filter group");
-        let all_args = get_args(&filter_group);
+        let all_args = get_args(filter_group);
         let manipulation: DataManipulation = DataManipulation {
             function,
             args: all_args
@@ -400,10 +400,7 @@ fn split_by_spaces(str: &str) -> Vec<LiquidDataType> {
     let mut quote_type = ' ';
     let mut in_escaped = false;
 
-    for (index, c) in str.chars().enumerate() {
-        // let is_first = index == 0;
-        // let is_last = index == str.len() - 1;
-
+    for c in str.chars() {
         if in_escaped {
             current.push(c);
             in_escaped = false;
