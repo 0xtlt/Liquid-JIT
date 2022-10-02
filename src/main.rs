@@ -30,6 +30,7 @@ enum DataManipulationArg {
 #[derive(Debug, Clone, PartialEq)]
 enum DataManipulationFunction {
     Replace,
+    Assign,
     NotDefined,
 }
 
@@ -405,43 +406,61 @@ fn compute_liquid_instructions(
 
         let first_instruction = filter_groups.first().expect("No instruction found");
 
+        let data = {
+            if echo_mode {
+                // DataManipulationMode::Echo
+                first_instruction.get(0)
+            } else {
+                // DataManipulationMode::Assign
+                first_instruction.get(1)
+            }
+        }
+        .expect("No data found");
+
         println!("first_instruction: {:?}", first_instruction);
 
-        // let mut instruction: Instruction = Instruction {
-        //     op_type: InstructionType::DataManipulation(DataManipulation {
-        //         data: {
-        //             let instruction = {
-        //                 if echo_mode {
-        //                     instruction_0
-        //                 } else {
-        //                     instruction_1.expect("No instruction found")
-        //                 }
-        //             };
-
-        //             match instruction {
-        //                 LiquidDataType::Variable(value) => VarOrRaw::Var(value.to_owned()),
-        //                 LiquidDataType::Quote(value) => VarOrRaw::Raw(value.to_owned()),
-        //                 _ => panic!("Error while calculating instruction"),
-        //             }
-        //         },
-        //         function: DataManipulationFunction::NotDefined,
-        //         args: vec![],
-        //         arg_map: HashMap::new(),
-        //         mode: {
-        //             if echo_mode {
-        //                 DataManipulationMode::Echo
-        //             } else {
-        //                 DataManipulationMode::Assign
-        //             }
-        //         },
-        //     }),
-        //     value: InstructionValue::Undefined,
-        // };
+        // TODO: modify the assign system because assign is not the same as render ou anything else
+        let mut instruction: Instruction = Instruction {
+            op_type: InstructionType::DataManipulation(DataManipulation {
+                data: {
+                    match data {
+                        LiquidDataType::Variable(name) => VarOrRaw::Var(name.to_owned()),
+                        LiquidDataType::Quote(content) => VarOrRaw::Raw(content.to_owned()),
+                        _ => panic!("Not supported case"),
+                    }
+                },
+                function: {
+                    if echo_mode {
+                        DataManipulationFunction::NotDefined
+                    } else {
+                        DataManipulationFunction::Assign
+                    }
+                },
+                args: vec![match first_instruction.get(3).expect("No args found") {
+                    LiquidDataType::Variable(name) => {
+                        DataManipulationArg::Variable(name.to_owned())
+                    }
+                    LiquidDataType::Quote(content) => {
+                        DataManipulationArg::String(content.to_owned())
+                    }
+                    _ => panic!("Not supported case"),
+                }],
+                arg_map: HashMap::new(),
+                mode: {
+                    if echo_mode {
+                        DataManipulationMode::Echo
+                    } else {
+                        DataManipulationMode::Assign
+                    }
+                },
+            }),
+            value: InstructionValue::Undefined,
+        };
 
         println!("--------------");
         println!("liquid_instruction: {:?}", liquid_instruction);
         println!("(((((--------------)))))");
-        // println!("instruction: {:?}", instruction);
+        println!("instruction: {:?}", instruction);
         println!("--------------");
         // instructions.push(DataManipulation {
         //     data: todo!(),
