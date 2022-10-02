@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use serde_json::json;
 
 // #[derive(Debug)]
@@ -11,11 +13,48 @@ struct Conditions {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+enum VarOrRaw {
+    Var(String),
+    Raw(String),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+enum DataManipulationArg {
+    String(String),
+    Number(f64),
+    Boolean(bool),
+    Variable(String),
+    Nil,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+enum DataManipulationFunction {
+    Replace,
+    NotDefined,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+enum DataManipulationMode {
+    Assign,
+    Echo,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+struct DataManipulation {
+    data: VarOrRaw,
+    mode: DataManipulationMode,
+    function: DataManipulationFunction,
+    args: Vec<DataManipulationArg>,
+    arg_map: HashMap<String, DataManipulationArg>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 enum InstructionType {
     Raw,
     Error(String, u64),
     // First vec is for multiple if elseif conditions, the second is for the else case
     Conditions(Vec<Conditions>, Option<Vec<Instruction>>),
+    DataManipulation(DataManipulation),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -190,6 +229,22 @@ enum LiquidDataType {
     Filter,
     Coma,
     Period,
+    Equal,
+}
+
+fn group_by_filter(data_types: &Vec<LiquidDataType>) -> Vec<Vec<LiquidDataType>> {
+    let mut groups: Vec<Vec<LiquidDataType>> = vec![vec![]];
+
+    for data_type in data_types {
+        match data_type {
+            LiquidDataType::Filter => {
+                groups.push(vec![]);
+            }
+            _ => groups.last_mut().unwrap().push(data_type.clone()),
+        }
+    }
+
+    groups
 }
 
 fn keys_detection(
@@ -303,8 +358,8 @@ fn apply_variable_detection(datas: &[LiquidDataType]) -> Vec<LiquidDataType> {
 fn compute_liquid_instructions(
     instructions: &mut Instructions,
     liquid_str: &str,
-    echo_mode: &bool,
-) -> Vec<Vec<LiquidDataType>> {
+    echo_mode: bool,
+) -> Vec<Instruction> {
     // Lines are important in liquid
     println!("input Liquid: {}", liquid_str);
     let mut liquid_instructions: Vec<Vec<LiquidDataType>> = vec![];
@@ -318,12 +373,16 @@ fn compute_liquid_instructions(
 
         let result = apply_variable_detection(&keys_detection(
             &keys_detection(
-                &keys_detection(&line_parts, &FILTER_SYMBOLE, LiquidDataType::Filter),
-                &COMA_SYMBOLE,
-                LiquidDataType::Coma,
+                &keys_detection(
+                    &keys_detection(&line_parts, &FILTER_SYMBOLE, LiquidDataType::Filter),
+                    &COMA_SYMBOLE,
+                    LiquidDataType::Coma,
+                ),
+                &PERIOD_SYMBOLE,
+                LiquidDataType::Period,
             ),
-            &PERIOD_SYMBOLE,
-            LiquidDataType::Period,
+            &ASSIGN_SYMBOLE,
+            LiquidDataType::Equal,
         ));
 
         if result.first() != Some(&LiquidDataType::Filter) {
@@ -335,7 +394,64 @@ fn compute_liquid_instructions(
 
     println!("liquid_instructions: {:?}", liquid_instructions);
 
-    liquid_instructions
+    // Translate liquid instructions to instructions
+
+    let instructions: Vec<Instruction> = vec![];
+
+    for liquid_instruction in liquid_instructions {
+        let filter_groups = group_by_filter(&liquid_instruction);
+        // let instruction_0 = liquid_instruction.first().expect("No instruction found");
+        // let instruction_1 = liquid_instruction.first();
+
+        let first_instruction = filter_groups.first().expect("No instruction found");
+
+        println!("first_instruction: {:?}", first_instruction);
+
+        // let mut instruction: Instruction = Instruction {
+        //     op_type: InstructionType::DataManipulation(DataManipulation {
+        //         data: {
+        //             let instruction = {
+        //                 if echo_mode {
+        //                     instruction_0
+        //                 } else {
+        //                     instruction_1.expect("No instruction found")
+        //                 }
+        //             };
+
+        //             match instruction {
+        //                 LiquidDataType::Variable(value) => VarOrRaw::Var(value.to_owned()),
+        //                 LiquidDataType::Quote(value) => VarOrRaw::Raw(value.to_owned()),
+        //                 _ => panic!("Error while calculating instruction"),
+        //             }
+        //         },
+        //         function: DataManipulationFunction::NotDefined,
+        //         args: vec![],
+        //         arg_map: HashMap::new(),
+        //         mode: {
+        //             if echo_mode {
+        //                 DataManipulationMode::Echo
+        //             } else {
+        //                 DataManipulationMode::Assign
+        //             }
+        //         },
+        //     }),
+        //     value: InstructionValue::Undefined,
+        // };
+
+        println!("--------------");
+        println!("liquid_instruction: {:?}", liquid_instruction);
+        println!("(((((--------------)))))");
+        // println!("instruction: {:?}", instruction);
+        println!("--------------");
+        // instructions.push(DataManipulation {
+        //     data: todo!(),
+        //     function: DataManipulationFunction::Replace,
+        //     args: todo!(),
+        //     arg_map: todo!(),
+        // });
+    }
+
+    instructions
 }
 
 fn main() {
@@ -387,6 +503,13 @@ fn main() {
 
                 instructions.add_instruction(&mut next_instruction);
                 continue;
+            } else if letter == '{' && next_char == Some('%') {
+                is_liquid_mode = true;
+                is_liquid_echo_mode = false;
+                skip_count = 1;
+
+                instructions.add_instruction(&mut next_instruction);
+                continue;
             }
 
             next_instruction.op_type = InstructionType::Raw;
@@ -400,11 +523,11 @@ fn main() {
                 last_liquid_string.push(letter);
             } else if !is_liquid_string_mode {
                 // End of print liquid mode
-                if letter == '}' && next_char == Some('}') {
+                if (letter == '}' || letter == '%') && next_char == Some('}') {
                     compute_liquid_instructions(
                         &mut instructions,
                         &last_liquid_string,
-                        &is_liquid_echo_mode,
+                        is_liquid_echo_mode,
                     );
                     last_liquid_string = String::new();
                     is_liquid_mode = false;
