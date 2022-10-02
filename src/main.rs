@@ -19,19 +19,15 @@ enum VarOrRaw {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-enum DataManipulationArg {
-    String(String),
-    Number(f64),
-    Boolean(bool),
-    Variable(String),
-    Nil,
-}
-
-#[derive(Debug, Clone, PartialEq)]
 enum DataManipulationFunction {
     Replace,
     Assign,
+    Echo,
     NotDefined,
+    Plus,
+    Minus,
+    T,
+    Upcase,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -41,12 +37,16 @@ enum DataManipulationMode {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+enum DataManipulationArgsType {
+    Arg(LiquidDataType),
+    ArgMap(String, LiquidDataType),
+}
+
+#[derive(Debug, Clone, PartialEq)]
 struct DataManipulation {
-    data: VarOrRaw,
-    mode: DataManipulationMode,
     function: DataManipulationFunction,
-    args: Vec<DataManipulationArg>,
-    arg_map: HashMap<String, DataManipulationArg>,
+    args: Vec<LiquidDataType>,
+    arg_map: HashMap<String, LiquidDataType>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -55,7 +55,7 @@ enum InstructionType {
     Error(String, u64),
     // First vec is for multiple if elseif conditions, the second is for the else case
     Conditions(Vec<Conditions>, Option<Vec<Instruction>>),
-    DataManipulation(DataManipulation),
+    DataManipulation(DataManipulationMode, VarOrRaw, Vec<DataManipulation>),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -216,13 +216,30 @@ const DB_QUOTE_SYMBOLE: char = '"';
 const ASSIGN_SYMBOLE: char = '=';
 const ASSIGN_KEYWORD: &str = "assign";
 
-const RESERVED_KEYWORDS: [&str; 7] = ["replace", "assign", "if", "else", "endif", "plus", "minus"];
+const RESERVED_KEYWORDS: [&str; 9] = [
+    "replace", "assign", "if", "else", "endif", "plus", "minus", "t", "upcase",
+];
+
+const KEYWORDS_MAP: [DataManipulationFunction; 9] = [
+    DataManipulationFunction::Replace,
+    DataManipulationFunction::Assign,
+    DataManipulationFunction::NotDefined,
+    DataManipulationFunction::NotDefined,
+    DataManipulationFunction::NotDefined,
+    DataManipulationFunction::Plus,
+    DataManipulationFunction::Minus,
+    DataManipulationFunction::T,
+    DataManipulationFunction::Upcase,
+];
 
 #[derive(Debug, Clone, PartialEq)]
 enum LiquidDataType {
     Liquid(String),
     Variable(String),
-    Quote(String),
+    String(String),
+    Number(f64),
+    Boolean(bool),
+    Nil,
     Filter,
     Coma,
     Period,
@@ -242,6 +259,104 @@ fn group_by_filter(data_types: &Vec<LiquidDataType>) -> Vec<Vec<LiquidDataType>>
     }
 
     groups
+}
+
+fn get_first_liquid(datas: &Vec<LiquidDataType>) -> Option<DataManipulationFunction> {
+    for data in datas {
+        if let LiquidDataType::Liquid(content) = data {
+            let position = RESERVED_KEYWORDS
+                .iter()
+                .position(|&r| r == content)
+                .unwrap();
+
+            return Some(KEYWORDS_MAP.get(position).unwrap().clone());
+        }
+    }
+
+    None
+}
+
+fn get_args(datas: &[LiquidDataType]) -> Vec<DataManipulationArgsType> {
+    let mut args: Vec<DataManipulationArgsType> = vec![];
+
+    let mut is_period_passed = false;
+    let mut skip_count: u8 = 0;
+
+    for (index, data) in datas.iter().enumerate() {
+        if skip_count > 0 {
+            skip_count -= 1;
+            continue;
+        }
+
+        if !is_period_passed {
+            if data == &LiquidDataType::Period {
+                is_period_passed = true;
+            }
+
+            continue;
+        }
+
+        let next_type = datas.get(index + 1);
+
+        // ... key: value
+        if next_type == Some(&LiquidDataType::Period) {
+            // TODO: replace the expect by a liquid error
+            let next_value = datas.get(index + 2).expect("No value after period");
+
+            skip_count = 2;
+
+            if let LiquidDataType::String(key) = data {
+                args.push(DataManipulationArgsType::ArgMap(
+                    key.to_string(),
+                    next_value.clone(),
+                ));
+            }
+
+            continue;
+        } else {
+            // ... value, value, value
+            args.push(DataManipulationArgsType::Arg(data.clone()));
+        }
+    }
+
+    args
+}
+
+fn generate_data_manipulations(filter_groups: &Vec<Vec<LiquidDataType>>) -> Vec<DataManipulation> {
+    let mut manipulations: Vec<DataManipulation> = vec![];
+
+    for (index, filter_group) in filter_groups.iter().enumerate() {
+        if index == 0 {
+            // Skip the first part because it's the variable or primary data, not manipulations
+            continue;
+        }
+
+        let function = get_first_liquid(filter_group).expect("No liquid in filter group");
+        let all_args = get_args(&filter_group);
+        let manipulation: DataManipulation = DataManipulation {
+            function,
+            args: all_args
+                .iter()
+                .filter(|arg| matches!(arg, DataManipulationArgsType::Arg(_)))
+                .map(|arg| match arg {
+                    DataManipulationArgsType::Arg(arg) => arg.clone(),
+                    _ => panic!("Should not happen"),
+                })
+                .collect(),
+            arg_map: all_args
+                .iter()
+                .filter(|arg| matches!(arg, DataManipulationArgsType::ArgMap(_, _)))
+                .map(|arg| match arg {
+                    DataManipulationArgsType::ArgMap(key, value) => (key.clone(), value.clone()),
+                    _ => panic!("Should not happen"),
+                })
+                .collect(),
+        };
+
+        manipulations.push(manipulation);
+    }
+
+    manipulations
 }
 
 fn keys_detection(
@@ -297,7 +412,7 @@ fn split_by_spaces(str: &str) -> Vec<LiquidDataType> {
         } else if in_quotes {
             if c == quote_type {
                 if in_quotes {
-                    result.push(LiquidDataType::Quote(current));
+                    result.push(LiquidDataType::String(current));
                     current = String::new();
                 }
 
@@ -323,7 +438,7 @@ fn split_by_spaces(str: &str) -> Vec<LiquidDataType> {
 
     if !current.is_empty() {
         if in_quotes {
-            result.push(LiquidDataType::Quote(current));
+            result.push(LiquidDataType::String(current));
         } else {
             result.push(LiquidDataType::Liquid(current));
         }
@@ -354,7 +469,6 @@ fn apply_variable_detection(datas: &[LiquidDataType]) -> Vec<LiquidDataType> {
 
 fn compute_liquid_instructions(instructions: &mut Instructions, liquid_str: &str, echo_mode: bool) {
     // Lines are important in liquid
-    println!("input Liquid: {}", liquid_str);
     let mut liquid_instructions: Vec<Vec<LiquidDataType>> = vec![];
 
     let lines = liquid_str.lines();
@@ -385,8 +499,6 @@ fn compute_liquid_instructions(instructions: &mut Instructions, liquid_str: &str
         liquid_instructions.last_mut().unwrap().extend(result);
     }
 
-    println!("liquid_instructions: {:?}", liquid_instructions);
-
     // Translate liquid instructions to instructions
 
     for liquid_instruction in liquid_instructions {
@@ -407,66 +519,43 @@ fn compute_liquid_instructions(instructions: &mut Instructions, liquid_str: &str
         }
         .expect("No data found");
 
-        println!("first_instruction: {:?}", first_instruction);
-
-        let function = {
-            if echo_mode {
-                DataManipulationFunction::NotDefined
-            } else {
-                match first_instruction.get(0) {
-                    Some(LiquidDataType::Liquid(content)) => {
-                        if content == "assign" {
-                            DataManipulationFunction::Assign
-                        } else {
-                            DataManipulationFunction::NotDefined
-                        }
-                    }
-                    _ => DataManipulationFunction::NotDefined,
-                }
-            }
-        };
-
         let instruction: Instruction = Instruction {
-            op_type: InstructionType::DataManipulation(DataManipulation {
-                data: {
-                    match data {
-                        LiquidDataType::Variable(name) => VarOrRaw::Var(name.to_owned()),
-                        LiquidDataType::Quote(content) => VarOrRaw::Raw(content.to_owned()),
-                        _ => panic!("Not supported case"),
-                    }
-                },
-                args: {
-                    if function == DataManipulationFunction::Assign {
-                        vec![match first_instruction.get(3).expect("No args found") {
-                            LiquidDataType::Variable(name) => {
-                                DataManipulationArg::Variable(name.to_owned())
-                            }
-                            LiquidDataType::Quote(content) => {
-                                DataManipulationArg::String(content.to_owned())
-                            }
-                            _ => panic!("Not supported case"),
-                        }]
-                    } else {
-                        vec![]
-                    }
-                },
-                function,
-                arg_map: HashMap::new(),
-                mode: {
+            op_type: InstructionType::DataManipulation(
+                {
                     if echo_mode {
                         DataManipulationMode::Echo
                     } else {
                         DataManipulationMode::Assign
                     }
                 },
-            }),
+                match data {
+                    LiquidDataType::Variable(name) => VarOrRaw::Var(name.to_owned()),
+                    LiquidDataType::String(content) => VarOrRaw::Raw(content.to_owned()),
+                    _ => panic!("Not supported case"),
+                },
+                generate_data_manipulations(&filter_groups),
+                // vec![DataManipulation {
+                //     args: {
+                //         if function == DataManipulationFunction::Assign {
+                //             vec![match first_instruction.get(3).expect("No args found") {
+                //                 LiquidDataType::Variable(name) => {
+                //                     DataManipulationArg::Variable(name.to_owned())
+                //                 }
+                //                 LiquidDataType::Quote(content) => {
+                //                     DataManipulationArg::String(content.to_owned())
+                //                 }
+                //                 _ => panic!("Not supported case"),
+                //             }]
+                //         } else {
+                //             vec![]
+                //         }
+                //     },
+                //     function,
+                //     arg_map: HashMap::new(),
+                // }],
+            ),
         };
 
-        println!("--------------");
-        println!("liquid_instruction: {:?}", liquid_instruction);
-        println!("(((((--------------)))))");
-        println!("instruction: {:?}", instruction);
-        println!("--------------");
         // instructions.push(DataManipulation {
         //     data: todo!(),
         //     function: DataManipulationFunction::Replace,
