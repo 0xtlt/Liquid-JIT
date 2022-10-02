@@ -1,0 +1,10 @@
+pub mod apply_variable_detection;
+pub mod compute_liquid_instructions;
+pub mod data_manipulation;
+pub mod generate_data_manipulations;
+pub mod get_args;
+pub mod get_first_liquid;
+pub mod group_by_filter;
+pub mod keys_detection;
+pub mod split_by_spaces;
+pub mod types;
