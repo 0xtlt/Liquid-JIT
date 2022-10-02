@@ -51,7 +51,7 @@ struct DataManipulation {
 
 #[derive(Debug, Clone, PartialEq)]
 enum InstructionType {
-    Raw,
+    Raw(String),
     Error(String, u64),
     // First vec is for multiple if elseif conditions, the second is for the else case
     Conditions(Vec<Conditions>, Option<Vec<Instruction>>),
@@ -70,13 +70,12 @@ enum InstructionValue {
 struct Instruction {
     // 0 is echo, 1 is exit
     op_type: InstructionType,
-    value: InstructionValue,
 }
 
 impl Instruction {
     // Check if the instruction actual type is the same as the expected type
     // If not, try to convert it
-    pub fn convert(&mut self, new_type: InstructionValue) -> Result<(), String> {
+    /*  pub fn convert(&mut self, new_type: InstructionValue) -> Result<(), String> {
         match new_type {
             // From x to Float
             InstructionValue::Float(_) => match self.value {
@@ -156,17 +155,18 @@ impl Instruction {
             InstructionValue::Undefined => Err("Cannot convert to undefined".to_owned()),
         }
     }
-    pub fn add_char(&mut self, value: char) -> Result<(), String> {
-        self.convert(InstructionValue::String(String::new()))?;
+    */
+    // pub fn add_char(&mut self, value: char) -> Result<(), String> {
+    //     self.convert(InstructionValue::String(String::new()))?;
 
-        match self.value {
-            InstructionValue::String(ref mut s) => {
-                s.push(value);
-                Ok(())
-            }
-            _ => Err("Cannot add string to non-string".to_owned()),
-        }
-    }
+    //     match self.value {
+    //         InstructionValue::String(ref mut s) => {
+    //             s.push(value);
+    //             Ok(())
+    //         }
+    //         _ => Err("Cannot add string to non-string".to_owned()),
+    //     }
+    // }
 }
 
 #[derive(Debug)]
@@ -181,17 +181,14 @@ impl Instructions {
     }
 
     pub fn add_instruction(&mut self, instruction: &mut Instruction) {
-        if instruction.op_type == InstructionType::Raw
-            && instruction.value == InstructionValue::Undefined
-        {
+        if instruction.op_type == InstructionType::Raw("".to_owned()) {
             // Do nothing
         } else {
             self.instructions.push(instruction.clone());
         }
 
         // Reset the instruction
-        instruction.op_type = InstructionType::Raw;
-        instruction.value = InstructionValue::Undefined;
+        instruction.op_type = InstructionType::Raw("".to_owned());
     }
 
     pub fn liquid_error_handler<AnyType>(
@@ -204,7 +201,6 @@ impl Instructions {
             Err(e) => {
                 self.instructions.push(Instruction {
                     op_type: InstructionType::Error(e, *line_number),
-                    value: InstructionValue::Undefined,
                 });
             }
         }
@@ -356,11 +352,7 @@ fn apply_variable_detection(datas: &[LiquidDataType]) -> Vec<LiquidDataType> {
     datas_with_filter
 }
 
-fn compute_liquid_instructions(
-    instructions: &mut Instructions,
-    liquid_str: &str,
-    echo_mode: bool,
-) -> Vec<Instruction> {
+fn compute_liquid_instructions(instructions: &mut Instructions, liquid_str: &str, echo_mode: bool) {
     // Lines are important in liquid
     println!("input Liquid: {}", liquid_str);
     let mut liquid_instructions: Vec<Vec<LiquidDataType>> = vec![];
@@ -396,8 +388,6 @@ fn compute_liquid_instructions(
     println!("liquid_instructions: {:?}", liquid_instructions);
 
     // Translate liquid instructions to instructions
-
-    let instructions: Vec<Instruction> = vec![];
 
     for liquid_instruction in liquid_instructions {
         let filter_groups = group_by_filter(&liquid_instruction);
@@ -470,7 +460,6 @@ fn compute_liquid_instructions(
                     }
                 },
             }),
-            value: InstructionValue::Undefined,
         };
 
         println!("--------------");
@@ -484,9 +473,9 @@ fn compute_liquid_instructions(
         //     args: todo!(),
         //     arg_map: todo!(),
         // });
-    }
 
-    instructions
+        instructions.instructions.push(instruction);
+    }
 }
 
 fn main() {
@@ -510,8 +499,7 @@ fn main() {
 
     let mut instructions = Instructions::new();
     let mut next_instruction = Instruction {
-        op_type: InstructionType::Raw,
-        value: InstructionValue::Undefined,
+        op_type: InstructionType::Raw("".to_owned()),
     };
 
     let mut last_liquid_string = String::new();
@@ -547,8 +535,15 @@ fn main() {
                 continue;
             }
 
-            next_instruction.op_type = InstructionType::Raw;
-            instructions.liquid_error_handler(next_instruction.add_char(letter), &line_number);
+            next_instruction.op_type = {
+                match &next_instruction.op_type {
+                    InstructionType::Raw(content) => {
+                        InstructionType::Raw(format!("{}{}", content, letter))
+                    }
+                    _ => InstructionType::Raw(letter.to_string()),
+                }
+            };
+            // instructions.liquid_error_handler(next_instruction.add_char(letter), &line_number);
             continue;
         } else if is_liquid_mode {
             if is_liquid_string_mode {
