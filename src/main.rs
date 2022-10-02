@@ -2,10 +2,7 @@ use std::collections::HashMap;
 
 use serde_json::json;
 
-// #[derive(Debug)]
-// enum LiquidMode {
-//     NotLiquid,
-// }
+// TODO: add number support aside of string one
 
 #[derive(Debug, Clone, PartialEq)]
 struct Conditions {
