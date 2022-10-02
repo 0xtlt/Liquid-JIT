@@ -12,7 +12,7 @@ struct Conditions {
 
 #[derive(Debug, Clone, PartialEq)]
 enum InstructionType {
-    Echo,
+    Raw,
     Error(String, u64),
     // First vec is for multiple if elseif conditions, the second is for the else case
     Conditions(Vec<Conditions>, Option<Vec<Instruction>>),
@@ -141,7 +141,7 @@ impl Instructions {
     }
 
     pub fn add_instruction(&mut self, instruction: &mut Instruction) {
-        if instruction.op_type == InstructionType::Echo
+        if instruction.op_type == InstructionType::Raw
             && instruction.value == InstructionValue::Undefined
         {
             // Do nothing
@@ -150,7 +150,7 @@ impl Instructions {
         }
 
         // Reset the instruction
-        instruction.op_type = InstructionType::Echo;
+        instruction.op_type = InstructionType::Raw;
         instruction.value = InstructionValue::Undefined;
     }
 
@@ -304,10 +304,10 @@ fn compute_liquid_instructions(
     instructions: &mut Instructions,
     liquid_str: &str,
     echo_mode: &bool,
-) {
+) -> Vec<Vec<LiquidDataType>> {
     // Lines are important in liquid
     println!("input Liquid: {}", liquid_str);
-    let mut liquid_instructions: Vec<Vec<LiquidDataType>> = vec![vec![]];
+    let mut liquid_instructions: Vec<Vec<LiquidDataType>> = vec![];
 
     let lines = liquid_str.lines();
     for line in lines {
@@ -335,7 +335,7 @@ fn compute_liquid_instructions(
 
     println!("liquid_instructions: {:?}", liquid_instructions);
 
-    // todo!("Compute liquid instructions");
+    liquid_instructions
 }
 
 fn main() {
@@ -359,7 +359,7 @@ fn main() {
 
     let mut instructions = Instructions::new();
     let mut next_instruction = Instruction {
-        op_type: InstructionType::Echo,
+        op_type: InstructionType::Raw,
         value: InstructionValue::Undefined,
     };
 
@@ -389,7 +389,7 @@ fn main() {
                 continue;
             }
 
-            next_instruction.op_type = InstructionType::Echo;
+            next_instruction.op_type = InstructionType::Raw;
             instructions.liquid_error_handler(next_instruction.add_char(letter), &line_number);
             continue;
         } else if is_liquid_mode {
