@@ -6,8 +6,15 @@ pub struct Conditions {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub enum FastVarFinder {
+    Key(String),
+    Index(u64),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum VarOrRaw {
     Var(String),
+    FastVar(Vec<FastVarFinder>),
     Raw(String),
 }
 
