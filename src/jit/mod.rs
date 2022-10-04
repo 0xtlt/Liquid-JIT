@@ -1,6 +1,7 @@
 pub mod apply_variable_detection;
 pub mod compute_liquid_instructions;
 pub mod data_manipulation;
+pub mod fast_var;
 pub mod generate_data_manipulations;
 pub mod get_args;
 pub mod get_first_liquid;

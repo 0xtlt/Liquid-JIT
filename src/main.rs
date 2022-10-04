@@ -7,7 +7,9 @@ use jit::{
 };
 use serde_json::json;
 
-use crate::jit::compute_liquid_instructions::compute_liquid_instructions;
+use crate::jit::{
+    compute_liquid_instructions::compute_liquid_instructions, fast_var::fast_var_process,
+};
 
 // TODO: add number support aside of string one
 
@@ -269,7 +271,7 @@ fn main() {
     }
 
     // Pass instructions in a function to split variables into a fast find map
-    // TODO: do it
+    fast_var_process(&mut instructions.instructions);
 
     println!("Instructions:");
     println!("{:?}", instructions);
