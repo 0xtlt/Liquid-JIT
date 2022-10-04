@@ -7,7 +7,11 @@ pub struct Conditions {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FastVarFinder {
+    // hello.world or hello["world"] or hello['world']
     Key(String),
+    // hello[hello.world]
+    VarAsKey(Vec<FastVarFinder>),
+    // hello[0]
     Index(u64),
 }
 

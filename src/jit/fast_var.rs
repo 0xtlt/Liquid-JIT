@@ -1,5 +1,6 @@
 use super::types::{FastVarFinder, Instruction};
 
+// Path is separated by dots
 pub fn create_fast_var(path: &str) -> Vec<FastVarFinder> {
     todo!()
 }
