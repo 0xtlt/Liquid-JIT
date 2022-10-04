@@ -267,6 +267,10 @@ fn main() {
             }
         }
     }
+
+    // Pass instructions in a function to split variables into a fast find map
+    // TODO: do it
+
     println!("Instructions:");
     println!("{:?}", instructions);
 
