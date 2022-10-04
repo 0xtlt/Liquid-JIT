@@ -1,4 +1,4 @@
-use crate::{ASSIGN_SYMBOLE, COMA_SYMBOLE, FILTER_SYMBOLE, PERIOD_SYMBOLE};
+use crate::{ASSIGN_SYMBOL, COMA_SYMBOL, FILTER_SYMBOL, PERIOD_SYMBOL};
 
 use super::{
     apply_variable_detection::apply_variable_detection,
@@ -28,14 +28,14 @@ pub fn compute_liquid_instructions(
         let result = apply_variable_detection(&keys_detection(
             &keys_detection(
                 &keys_detection(
-                    &keys_detection(&line_parts, &FILTER_SYMBOLE, LiquidDataType::Filter),
-                    &COMA_SYMBOLE,
+                    &keys_detection(&line_parts, &FILTER_SYMBOL, LiquidDataType::Filter),
+                    &COMA_SYMBOL,
                     LiquidDataType::Coma,
                 ),
-                &PERIOD_SYMBOLE,
+                &PERIOD_SYMBOL,
                 LiquidDataType::Period,
             ),
-            &ASSIGN_SYMBOLE,
+            &ASSIGN_SYMBOL,
             LiquidDataType::Equal,
         ));
 

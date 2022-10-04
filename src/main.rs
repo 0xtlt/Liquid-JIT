@@ -8,7 +8,8 @@ use jit::{
 use serde_json::json;
 
 use crate::jit::{
-    compute_liquid_instructions::compute_liquid_instructions, fast_var::fast_var_process,
+    compute_liquid_instructions::compute_liquid_instructions,
+    fast_var::{create_fast_var, fast_var_process},
 };
 
 // TODO: add number support aside of string one
@@ -145,12 +146,15 @@ impl Instructions {
 }
 
 // Keywords
-const FILTER_SYMBOLE: char = '|';
-const COMA_SYMBOLE: char = ',';
-const PERIOD_SYMBOLE: char = ':';
-const QUOTE_SYMBOLE: char = '\'';
-const DB_QUOTE_SYMBOLE: char = '"';
-const ASSIGN_SYMBOLE: char = '=';
+const FILTER_SYMBOL: char = '|';
+const COMA_SYMBOL: char = ',';
+const PERIOD_SYMBOL: char = ':';
+const QUOTE_SYMBOL: char = '\'';
+const DB_QUOTE_SYMBOL: char = '"';
+const ASSIGN_SYMBOL: char = '=';
+const DOT_SYMBOL: char = '.';
+const OPEN_BRACKET_SYMBOL: char = '[';
+const CLOSE_BRACKET_SYMBOL: char = ']';
 // const ASSIGN_KEYWORD: &str = "assign";
 
 const RESERVED_KEYWORDS: [&str; 9] = [
@@ -256,10 +260,10 @@ fn main() {
                     is_liquid_echo_mode = false;
                     skip_count = 1;
                     // instructions.add_instruction(&mut next_instruction);
-                } else if letter == QUOTE_SYMBOLE || letter == DB_QUOTE_SYMBOLE {
+                } else if letter == QUOTE_SYMBOL || letter == DB_QUOTE_SYMBOL {
                     match letter {
-                        QUOTE_SYMBOLE => liquid_string_mode_char = QUOTE_SYMBOLE,
-                        DB_QUOTE_SYMBOLE => liquid_string_mode_char = DB_QUOTE_SYMBOLE,
+                        QUOTE_SYMBOL => liquid_string_mode_char = QUOTE_SYMBOL,
+                        DB_QUOTE_SYMBOL => liquid_string_mode_char = DB_QUOTE_SYMBOL,
                         _ => panic!("Invalid string mode char"),
                     }
                     last_liquid_string.push(letter);
@@ -271,6 +275,7 @@ fn main() {
     }
 
     // Pass instructions in a function to split variables into a fast find map
+    println!("{:?}", create_fast_var("hello.world['name']"));
     fast_var_process(&mut instructions.instructions);
 
     println!("Instructions:");

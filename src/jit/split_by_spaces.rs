@@ -1,4 +1,4 @@
-use crate::{DB_QUOTE_SYMBOLE, QUOTE_SYMBOLE};
+use crate::{DB_QUOTE_SYMBOL, QUOTE_SYMBOL};
 
 use super::types::LiquidDataType;
 
@@ -26,11 +26,11 @@ pub fn split_by_spaces(str: &str) -> Vec<LiquidDataType> {
             } else {
                 current.push(c);
             }
-        } else if c == DB_QUOTE_SYMBOLE {
-            quote_type = DB_QUOTE_SYMBOLE;
+        } else if c == DB_QUOTE_SYMBOL {
+            quote_type = DB_QUOTE_SYMBOL;
             in_quotes = true;
-        } else if c == QUOTE_SYMBOLE {
-            quote_type = QUOTE_SYMBOLE;
+        } else if c == QUOTE_SYMBOL {
+            quote_type = QUOTE_SYMBOL;
             in_quotes = true;
         } else if c == ' ' {
             if !current.is_empty() {
