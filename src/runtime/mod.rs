@@ -1,3 +1,4 @@
+pub mod convert;
 pub mod fast_var;
 pub mod json_to_variables;
 pub mod types;
@@ -88,17 +89,7 @@ fn exec(instruction: &mut Instruction, variables: &mut LiquidVariableType, end_s
 
             // If manipulation mode is echo, push the variable to the end_str
             if let crate::jit::data_manipulation::DataManipulationMode::Echo = manipulation_mode {
-                // match var_tmp {
-                //     VarOrRaw::Var(_) => {
-                //         panic!("Variable is not supported, only fast var in runtime mode",)
-                //     }
-                //     VarOrRaw::Raw(content) => {
-                //         end_str.push_str(content);
-                //     }
-                //     VarOrRaw::FastVar(fast_var_finder) => {
-                //         let var = get_fast_var(fast_var_finder, variables);
-                //     }
-                // }
+                end_str.push_str(&var_tmp.convert_to_string());
             }
         }
     }
