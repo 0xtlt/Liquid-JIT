@@ -7,37 +7,65 @@ pub fn create_fast_var(path: &str) -> Vec<FastVarFinder> {
 
     let mut is_in_bracket = false;
     let mut is_in_quote = false;
-    let mut quote_symbol: char = ' ';
+    let mut quote_type = QUOTE_SYMBOL;
     // TODO: support escape
 
     // TODO: change VarAsKey to ...
 
     let mut current = String::new();
+
+    // Detect bracket encapsulation like "a[d[e]].b.c"
+    let mut bracket_level = 0;
+
     for c in path.chars() {
-        if is_in_quote {
-            if c == quote_symbol {
-                is_in_quote = false;
-                continue;
+        // println!("{}: {} = {:?}", c, path, current);
+        if !is_in_bracket && (c == DB_QUOTE_SYMBOL || c == QUOTE_SYMBOL) {
+            panic!("Liquid error: String can't be used as a key");
+        } else if c == DB_QUOTE_SYMBOL || c == QUOTE_SYMBOL {
+            if is_in_quote {
+                if quote_type == c {
+                    is_in_quote = false;
+                }
+            } else {
+                is_in_quote = true;
+                quote_type = c;
             }
 
             current.push(c);
-        } else if !is_in_bracket && (c == DB_QUOTE_SYMBOL || c == QUOTE_SYMBOL) {
-            panic!("Liquid error: String can't be used as a key");
-        } else if is_in_bracket && (c == DB_QUOTE_SYMBOL || c == QUOTE_SYMBOL) {
-            is_in_quote = true;
-            quote_symbol = c;
-        } else if c == OPEN_BRACKET_SYMBOL {
-            is_in_bracket = true;
-            result.push(FastVarFinder::Key(current));
-            current = String::new();
-        } else if c == CLOSE_BRACKET_SYMBOL {
-            is_in_bracket = true;
+        } else if c == OPEN_BRACKET_SYMBOL && !is_in_quote {
+            if bracket_level == 0 {
+                is_in_bracket = true;
+                result.push(FastVarFinder::Key(current));
+                current = String::new();
+            } else {
+                current.push(c);
+            }
+            bracket_level += 1;
+        } else if c == CLOSE_BRACKET_SYMBOL && !is_in_quote {
+            bracket_level -= 1;
+
+            if bracket_level > 0 {
+                current.push(c);
+                continue;
+            }
+
+            is_in_bracket = false;
             match current.parse::<u64>() {
                 Ok(index) => result.push(FastVarFinder::Index(index)),
-                Err(_) => result.push(FastVarFinder::VarAsKey(create_fast_var(&current))),
+                Err(_) => {
+                    if (current.starts_with(DB_QUOTE_SYMBOL) && current.ends_with(DB_QUOTE_SYMBOL))
+                        || (current.starts_with(QUOTE_SYMBOL) && current.ends_with(QUOTE_SYMBOL))
+                    {
+                        result.push(FastVarFinder::Key(
+                            current[1..current.len() - 1].to_string(),
+                        ));
+                    } else {
+                        result.push(FastVarFinder::VarAsKey(create_fast_var(&current)))
+                    }
+                }
             }
             current = String::new();
-        } else if c == DOT_SYMBOL {
+        } else if c == DOT_SYMBOL && !is_in_bracket {
             result.push(FastVarFinder::Key(current));
             current = String::new();
         } else {
@@ -48,6 +76,12 @@ pub fn create_fast_var(path: &str) -> Vec<FastVarFinder> {
     if !current.is_empty() {
         result.push(FastVarFinder::Key(current));
     }
+
+    // Filter empty keys
+    result.retain(|x| match x {
+        FastVarFinder::Key(key) => !key.is_empty(),
+        _ => true,
+    });
 
     result
 }

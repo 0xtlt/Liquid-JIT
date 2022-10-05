@@ -275,7 +275,17 @@ fn main() {
     }
 
     // Pass instructions in a function to split variables into a fast find map
-    println!("{:?}", create_fast_var("hello.world['name']"));
+    println!("hello.world['name'][product.variants]");
+    println!(
+        "{:?}",
+        create_fast_var("hello.world['name'][product.variants]")
+    );
+    println!();
+    println!("product.variants[section.blocks[0].id]");
+    println!(
+        "{:?}",
+        create_fast_var("product.variants[section.blocks[0].id]")
+    );
     fast_var_process(&mut instructions.instructions);
 
     println!("Instructions:");
