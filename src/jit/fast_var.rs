@@ -92,9 +92,24 @@ pub fn fast_var_process(instructions: &mut [Instruction]) {
     for instruction in instructions.iter_mut() {
         match &mut instruction.op_type {
             crate::jit::types::InstructionType::Raw(_) => {}
-            crate::jit::types::InstructionType::DataManipulation(_, data, _) => {
+            crate::jit::types::InstructionType::DataManipulation(_, data, manipulations) => {
                 if let crate::jit::types::VarOrRaw::Var(name) = data {
                     *data = crate::jit::types::VarOrRaw::FastVar(create_fast_var(name));
+                }
+
+                for manipulation in manipulations.iter_mut() {
+                    // Filter coma
+                    manipulation
+                        .args
+                        .retain_mut(|x| !matches!(x, crate::jit::types::LiquidDataType::Coma));
+
+                    // Replace var by fast var
+                    for arg in manipulation.args.iter_mut() {
+                        if let crate::jit::types::LiquidDataType::Variable(name) = arg {
+                            *arg =
+                                crate::jit::types::LiquidDataType::FastVar(create_fast_var(name));
+                        }
+                    }
                 }
             }
         }

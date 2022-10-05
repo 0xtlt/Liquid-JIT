@@ -20,13 +20,13 @@ pub enum DataManipulationMode {
     Echo,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DataManipulationArgsType {
     Arg(LiquidDataType),
     ArgMap(String, LiquidDataType),
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DataManipulation {
     pub(crate) function: DataManipulationFunction,
     pub(crate) args: Vec<LiquidDataType>,

@@ -22,7 +22,7 @@ pub enum VarOrRaw {
     Raw(String),
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum InstructionType {
     Raw(String),
     // Error(String, u64),
@@ -42,11 +42,12 @@ pub struct Instructions {
     pub instructions: Vec<Instruction>,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LiquidDataType {
     Liquid(String),
     Variable(String),
     String(String),
+    FastVar(Vec<FastVarFinder>),
     // Number(f64),
     // Boolean(bool),
     // Nil,

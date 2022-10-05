@@ -1,13 +1,17 @@
 pub mod convert;
 pub mod fast_var;
 pub mod json_to_variables;
+pub mod manipulate;
 pub mod types;
 
 use std::collections::HashMap;
 
 use serde_json::Value;
 
-use crate::jit::types::{Instruction, Instructions, VarOrRaw};
+use crate::{
+    jit::types::{FastVarFinder, Instruction, Instructions, VarOrRaw},
+    runtime::manipulate::run_manipulations,
+};
 
 use self::{fast_var::get_fast_var, types::LiquidVariableType};
 
@@ -16,7 +20,7 @@ fn get_variable<'a>(
     variables: &'a mut LiquidVariableType,
     path: &'a str,
 ) -> Option<&'a mut LiquidVariableType> {
-    let mut current = variables;
+    let current = variables;
     let mut path = path.split('.');
     while let Some(part) = path.next() {
         if part.is_empty() {
@@ -30,6 +34,7 @@ fn get_variable<'a>(
 }
 
 fn exec(instruction: &mut Instruction, variables: &mut LiquidVariableType, end_str: &mut String) {
+    let mut copy_variables = variables.clone();
     match &mut instruction.op_type {
         crate::jit::types::InstructionType::Raw(content) => {
             end_str.push_str(content);
@@ -39,7 +44,6 @@ fn exec(instruction: &mut Instruction, variables: &mut LiquidVariableType, end_s
             data,
             manipulations,
         ) => {
-            println!("Data manipulation: {:?}-{:?}", data, variables);
             // Get the variable pointer in the var_tmp variabke
             // TODO: do it
             // let mut var_tmp: &mut VarOrRaw = &mut data;
@@ -53,8 +57,19 @@ fn exec(instruction: &mut Instruction, variables: &mut LiquidVariableType, end_s
                         match get_fast_var(fast_var_finder, variables) {
                             Some(variable) => variable,
                             None => {
-                                var_tmp_local = LiquidVariableType::Nil;
-                                &mut var_tmp_local
+                                // Only support 1 key for now
+                                let key = fast_var_finder.get(0).unwrap();
+
+                                if let FastVarFinder::Key(key) = key {
+                                    if let LiquidVariableType::Object(object) = variables {
+                                        object.insert(key.clone(), LiquidVariableType::Nil);
+                                        object.get_mut(key).unwrap()
+                                    } else {
+                                        panic!("Can't insert a key in a non object");
+                                    }
+                                } else {
+                                    panic!("Only support 1 key for now");
+                                }
                             }
                         }
                     }
@@ -82,10 +97,9 @@ fn exec(instruction: &mut Instruction, variables: &mut LiquidVariableType, end_s
                 },
             };
 
-            println!("var_tmp: {:?}", var_tmp);
-
             // Manipulate the variable
             // TODO: do it
+            run_manipulations(var_tmp, &mut copy_variables, manipulations);
 
             // If manipulation mode is echo, push the variable to the end_str
             if let crate::jit::data_manipulation::DataManipulationMode::Echo = manipulation_mode {
@@ -104,8 +118,6 @@ pub fn run(instructions: &mut Instructions, injected_variables: &Value) -> Strin
     for instruction in instructions.instructions.iter_mut() {
         exec(instruction, &mut variables, &mut result);
     }
-
-    println!("Variables: {:?}", variables);
 
     result
 }

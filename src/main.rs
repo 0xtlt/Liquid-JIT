@@ -298,5 +298,8 @@ fn main() {
     println!("RUN Result:");
     println!("{}", runtime::run(&mut instructions, &variables));
 
+    println!("Variables after run:");
+    println!("{:?}", variables);
+
     // println!("next_instruction:{:?}", next_instruction);
 }

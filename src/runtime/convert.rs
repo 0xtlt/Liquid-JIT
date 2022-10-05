@@ -1,3 +1,5 @@
+use crate::jit::types::LiquidDataType;
+
 use super::types::LiquidVariableType;
 
 impl LiquidVariableType {
@@ -38,3 +40,17 @@ impl LiquidVariableType {
         }
     }
 }
+
+// impl LiquidDataType {
+//     pub fn convert_to_string(&self) -> String {
+//         match self {
+//             LiquidDataType::Liquid(variable) => variable.convert_to_string(),
+//             LiquidDataType::Variable(variable) => variable.convert_to_string(),
+//             LiquidDataType::String(content) => content.clone(),
+//             LiquidDataType::Filter => panic!("Cannot convert filter to string"),
+//             LiquidDataType::Coma => panic!("Cannot convert coma to string"),
+//             LiquidDataType::Period => panic!("Cannot convert period to string"),
+//             LiquidDataType::Equal => panic!("Cannot convert equal to string"),
+//         }
+//     }
+// }

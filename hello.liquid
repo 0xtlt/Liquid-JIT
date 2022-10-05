@@ -6,7 +6,8 @@
   {{ 'my.super.translation' | t: x: 1, y: 2
     | replace: "x", "y" }}
 
-    {% assign hello = "world" | replace: "orld", "disney" | upcase%}
+    {% assign hello = "world" | replace: "orld", product.title | upcase%}
 
-    {{ hello }}
+    the result is: {{ hello }}
+    {{ "hello world" | replace: "hello", "goodbye" }}
 </p>
