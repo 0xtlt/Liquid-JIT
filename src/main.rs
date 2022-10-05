@@ -296,7 +296,7 @@ fn main() {
     println!();
 
     println!("RUN Result:");
-    println!("{}", runtime::run(&instructions, &variables));
+    println!("{}", runtime::run(&mut instructions, &variables));
 
     // println!("next_instruction:{:?}", next_instruction);
 }
