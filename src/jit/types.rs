@@ -48,6 +48,7 @@ pub enum LiquidDataType {
     Variable(String),
     String(String),
     FastVar(Vec<FastVarFinder>),
+    Assign,
     // Number(f64),
     // Boolean(bool),
     // Nil,

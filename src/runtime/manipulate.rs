@@ -5,11 +5,7 @@ use super::{
     types::LiquidVariableType,
 };
 
-fn get_arg_string(
-    args: &Vec<LiquidDataType>,
-    variables: &LiquidVariableType,
-    index: usize,
-) -> String {
+fn get_arg_string(args: &[LiquidDataType], variables: &LiquidVariableType, index: usize) -> String {
     if let Some(value) = args.get(index) {
         match value {
             crate::jit::types::LiquidDataType::FastVar(fast_var_finder) => {
@@ -35,12 +31,17 @@ pub fn run_manipulations(
     for manipulation in manipulations.iter() {
         match manipulation.function {
             crate::jit::data_manipulation::DataManipulationFunction::Replace => {
-                let arg_1 = get_arg_string(&manipulation.args, &variables, 0);
-                let arg_2 = get_arg_string(&manipulation.args, &variables, 1);
+                let arg_1 = get_arg_string(&manipulation.args, variables, 0);
+                let arg_2 = get_arg_string(&manipulation.args, variables, 1);
 
                 *variable = LiquidVariableType::String(
                     variable.convert_to_string().replace(&arg_1, &arg_2),
                 );
+            }
+            crate::jit::data_manipulation::DataManipulationFunction::Assign => {
+                let arg_1 = get_arg_string(&manipulation.args, variables, 0);
+
+                *variable = LiquidVariableType::String(arg_1);
             }
             _ => (),
         }

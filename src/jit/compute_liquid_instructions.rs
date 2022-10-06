@@ -10,6 +10,24 @@ use super::{
     types::{Instruction, InstructionType, Instructions, LiquidDataType, VarOrRaw},
 };
 
+// TODO: ajouter l'argument dans la fonction de assign
+
+fn liquid_assign_convert_to_filter(instructions: Vec<LiquidDataType>) -> Vec<LiquidDataType> {
+    let mut new_instructions: Vec<LiquidDataType> = vec![];
+    for instruction in instructions {
+        match instruction {
+            LiquidDataType::Equal => {
+                new_instructions.push(LiquidDataType::Filter);
+                new_instructions.push(LiquidDataType::Liquid("assign".to_string()));
+                new_instructions.push(LiquidDataType::Period);
+            }
+            _ => new_instructions.push(instruction),
+        }
+    }
+
+    new_instructions
+}
+
 pub fn compute_liquid_instructions(
     instructions: &mut Instructions,
     liquid_str: &str,
@@ -25,7 +43,7 @@ pub fn compute_liquid_instructions(
         // First pass to split by spaces (but not in quotes)
         let line_parts = split_by_spaces(line);
 
-        let result = apply_variable_detection(&keys_detection(
+        let result = liquid_assign_convert_to_filter(apply_variable_detection(&keys_detection(
             &keys_detection(
                 &keys_detection(
                     &keys_detection(&line_parts, &FILTER_SYMBOL, LiquidDataType::Filter),
@@ -37,7 +55,9 @@ pub fn compute_liquid_instructions(
             ),
             &ASSIGN_SYMBOL,
             LiquidDataType::Equal,
-        ));
+        )));
+
+        // add an equal sign if it's an assignation
 
         if result.first() != Some(&LiquidDataType::Filter) {
             liquid_instructions.push(vec![]);
