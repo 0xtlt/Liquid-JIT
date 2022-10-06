@@ -12,6 +12,7 @@ pub enum DataManipulationFunction {
     Minus,
     T,
     Upcase,
+    Downcase,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

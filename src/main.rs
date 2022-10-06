@@ -157,11 +157,11 @@ const OPEN_BRACKET_SYMBOL: char = '[';
 const CLOSE_BRACKET_SYMBOL: char = ']';
 // const ASSIGN_KEYWORD: &str = "assign";
 
-const RESERVED_KEYWORDS: [&str; 9] = [
-    "replace", "assign", "if", "else", "endif", "plus", "minus", "t", "upcase",
+const RESERVED_KEYWORDS: [&str; 10] = [
+    "replace", "assign", "if", "else", "endif", "plus", "minus", "t", "upcase", "downcase",
 ];
 
-const KEYWORDS_MAP: [DataManipulationFunction; 9] = [
+const KEYWORDS_MAP: [DataManipulationFunction; 10] = [
     DataManipulationFunction::Replace,
     DataManipulationFunction::Assign,
     DataManipulationFunction::NotDefined,
@@ -171,6 +171,7 @@ const KEYWORDS_MAP: [DataManipulationFunction; 9] = [
     DataManipulationFunction::Minus,
     DataManipulationFunction::T,
     DataManipulationFunction::Upcase,
+    DataManipulationFunction::Downcase,
 ];
 
 fn main() {

@@ -1,4 +1,7 @@
-use crate::jit::{data_manipulation::DataManipulation, types::LiquidDataType};
+use crate::jit::{
+    data_manipulation::{DataManipulation, DataManipulationFunction},
+    types::LiquidDataType,
+};
 
 use super::{fast_var::get_fast_var_not_mutable, types::LiquidVariableType};
 
@@ -27,7 +30,7 @@ pub fn run_manipulations(
 ) {
     for manipulation in manipulations.iter() {
         match manipulation.function {
-            crate::jit::data_manipulation::DataManipulationFunction::Replace => {
+            DataManipulationFunction::Replace => {
                 let arg_1 = get_arg_string(&manipulation.args, variables, 0);
                 let arg_2 = get_arg_string(&manipulation.args, variables, 1);
 
@@ -35,10 +38,16 @@ pub fn run_manipulations(
                     variable.convert_to_string().replace(&arg_1, &arg_2),
                 );
             }
-            crate::jit::data_manipulation::DataManipulationFunction::Assign => {
+            DataManipulationFunction::Assign => {
                 let arg_1 = get_arg_string(&manipulation.args, variables, 0);
 
                 *variable = LiquidVariableType::String(arg_1);
+            }
+            DataManipulationFunction::Upcase => {
+                *variable = LiquidVariableType::String(variable.convert_to_string().to_uppercase());
+            }
+            DataManipulationFunction::Downcase => {
+                *variable = LiquidVariableType::String(variable.convert_to_string().to_lowercase());
             }
             _ => (),
         }

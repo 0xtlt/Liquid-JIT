@@ -8,6 +8,6 @@
 
     {% assign hello = "world" | replace: "orld", product.title | upcase%}
 
-    the result is: {{ hello }}
+    the result is: {{ hello }} / {{ hello | downcase}}
     {{ "hello world" | replace: "hello", "goodbye" }}
 </p>
