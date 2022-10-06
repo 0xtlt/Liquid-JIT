@@ -1,9 +1,6 @@
 use crate::jit::{data_manipulation::DataManipulation, types::LiquidDataType};
 
-use super::{
-    fast_var::{get_fast_var, get_fast_var_not_mutable},
-    types::LiquidVariableType,
-};
+use super::{fast_var::get_fast_var_not_mutable, types::LiquidVariableType};
 
 fn get_arg_string(args: &[LiquidDataType], variables: &LiquidVariableType, index: usize) -> String {
     if let Some(value) = args.get(index) {

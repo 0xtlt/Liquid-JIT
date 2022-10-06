@@ -274,6 +274,9 @@ fn main() {
         }
     }
 
+    // Append last instruction
+    instructions.add_instruction(&mut next_instruction);
+
     // Pass instructions in a function to split variables into a fast find map
     println!("hello.world['name'][product.variants]");
     println!(
